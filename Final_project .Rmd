@@ -1,0 +1,174 @@
+---
+title: "Final Project"
+name: "Abdifatah Abdi"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+library(tidyverse)     # for data cleaning and plotting
+library(lubridate)     # for date manipulation
+library(openintro)     # for the abbr2state() function
+library(palmerpenguins)# for Palmer penguin data
+library(maps)          # for map data
+library(ggmap)         # for mapping points on maps
+library(gplots)        # for col2hex() function
+library(RColorBrewer)  # for color palettes
+library(sf)            # for working with spatial data
+library(leaflet)       # for highly customizable mapping
+library(carData)       # for Minneapolis police stops data
+library(ggthemes)      # for more themes (including theme_map())
+theme_set(theme_minimal())
+```
+
+The 2020 Election was one of the most important elections in U.S history. Due to the Covid-19 pandemic, and the racial violence, so much was at stake. That being said, a lot of people anticipated to see a high voter turnout in almost all states because of the use of Absentee Ballot and that high rate of early votes that occured prior to November 3rd. I am curious to see if, in fact, there was a high voter turnout across the many states, and if there is a correlation between States with the highest voter turnouts and political party affiliation. 
+
+Hypithesis: States with the highest voter turnout 2020 lean democrat in presidential elections. 
+
+
+
+To have a better understanding of what states had the highest voter turn out, I will create a map that colors the states by highest voting eligible population who voted in 2020.
+
+
+```{r, eval=TRUE}
+states_map <- map_data("state")
+election_data2020<- ('X2020_election_data.xlsx')
+  group_by(election_data1)%>%
+  mutate(states= str_to_lower(State))%>%
+  mutate(voter_turnout = (total_Ballots_counted/voting_eligible_pop)*100) %>%
+  ggplot(aes(fill = voter_turnout)) +
+  geom_map(aes(map_id = states), map = states_map) +
+  expand_limits(x = states_map$long, y = states_map$lat) +
+  scale_fill_distiller(palette = "RdBu",
+                         direction = 2,
+                         labels= scales::comma_format())+
+  
+  labs(title = "States with the highest Voter Turnout in 2020",
+         fill= "turnout percentage", 
+         caption = "Abdifatah" )+
+  theme_map()+
+  theme(legend.background =  element_blank())
+
+  
+  
+    
+```
+This map indicates that much of the states in the east cost who tend to vote Democrate are in the blue color, which is a rate 65% and above. Now, I want create a map that return in order of the states with the highest voter_turn_out in 2020. 
+```{r,  eval=FALSE}
+election_data2020 %>%
+  group_by(State, voting_eligible_pop) %>%
+  summarize(highest_turnout=sum(vep_turnout_rate)) %>%
+  arrange(desc(highest_turnout))
+```
+Now that I see the states in the top percentage of voter_turn_out, I want see how they voted in presidential elections over the years. for this, I willl need a new data set that shows the years and what party won the electoral votes of that states. 
+
+```{r,  eval=FALSE}
+all_elec_data<- presidential_election_results
+```
+
+```{r,  eval=FALSE}
+
+all_elec_data%>%
+  filter(state_name %in% c("Minnesota", "Maine","Iowa", "Colorado", "Wisconsin")) %>% 
+  group_by(democrat, republican, state_name, year) %>%
+  arrange(desc(democrat, republican))
+```
+
+From this table, in Minnesota, Maine, Iowa, and Colorada, Wisconsin, democrats have higher share of the total votes. Below, I will attempt to graph the democratic share of votes over the years in the key states I highlighted. 
+```{r,  eval=FALSE}
+all_elec_data%>%
+  filter(state_name %in% c("Minnesota", "Maine","Iowa", "Colorado", "Wisconsin")) %>% 
+  group_by(democrat, republican, state_name, year) %>%
+  arrange(desc(democrat, republican))%>%
+  ggplot() +
+  geom_line(aes(x=year, y= percent_rank(democrat), color=state_name)) +
+
+  scale_x_continuous(breaks = seq(1972,2016,4)) +
+  theme(legend.position = "right")+
+  labs(x = "",
+       y = "",
+       title= "percentage of democratic votes since 1972")
+``` 
+
+
+Conclusion:
+
+From what I observe, states with high voter turnout tend to vote democrat.In the case of 2020 election, many factors contribute to the high voting turnout in Minnesota, and some of the neighboring states, Iowa,Wisconsin. Thise factors include policies that make voting easier to do and  others such encouraging voters to vote early, and possibly by mail. Those are things that democrats are highly in favor of and may contribute to high voting turnouts in Democratic staes. 
+
+- The Shinny App will allow you to compare states and the percentage of democratic votes since 1972. 
+
+
+
+```{r, eval=FALSE}
+library(shiny)
+all_elec_data
+
+ui <- fluidPage(checkboxGroupInput("checkGroup", label = h3("Select States to compare"), 
+                                   choices = list("Alabama"="Alabama", "Alaska" ="Alaska", 
+                                                  "Arizona" ="Arizona","Arkansas"="Arkansas", 
+                                                  "California" ="California", "Colorado"="Colorado", 
+                                                  "Connecticut"="Connecticut","Delaware"="Delaware",
+                                                  "Florida"="Florida", "Georgia"="Georgia", 
+                                                  "Hawaii"="Hawaii","Idaho"="Idaho", "Illinois"="Illinois",
+                                                  "Indiana"="Indiana", "Iowa"="Iowa",
+                                                  "Kansas"="Kansas", "Kentucky"="Kentucky",
+                                                  "Louisiana"="Louisiana", "Maine"="Maine",
+                                                  "Maryland"="Maryland", "Massachusetts"="Massachusetts",
+                                                  "Michigan"="Michigan", "Minnesota"="Minnesota",
+                                                  "Mississippi"="Mississippi", "Missouri"="Missouri",
+                                                  "Montana"="Montana", "Nebraska"="Nebraska",
+                                                  "Nevada"="Nevada", "New Hampshire"="New Hampshire",
+                                                  "New Mexico"="New Mexico","New York"="New York", 
+                                                  "North Carolina"="North Carolina", 
+                                                  "North Dakota"="North Dakota","Ohio"="Ohio",
+                                                  "Oklahoma"="Oklahoma", "Oregon"="Oregon", "Pennsylvania"="Pennsylvania",
+                                                  "Rhode Island"="Rhode Island","South Carolina"="South Carolina",
+                                                  "South Dakota"="South Dakota", "Tennessee"="Tennessee",
+                                                  "Texas"="Texas", "Utah"="Utah",
+                                                  "Vermont"="Vermont", "Virginia"="Virginia",
+                                                  "Washington"="Washington", "West Virginia"="West Virginia",
+                                                  "Wisconsin"="Wisconsin", "Wyoming"="Wyoming"),
+                                   selected = 1),
+                submitButton(text = "Compare Election Results!"),
+                plotOutput(outputId = "timeplot"),
+                sliderInput(inputId = "years", 
+                            label = "Year Range",
+                            min = 1974, 
+                            max = 2020, 
+                            value = c(1974,2020))
+                        
+
+    
+)
+# Define server logic required to draw a histogram
+server <-function(input, output) {
+    output$timeplot <- renderPlot({
+        all_elec_data %>% 
+            group_by(state_name, year, democrat, republican) %>%
+            group_by(state) %>% 
+            
+            filter( state_name %in% c(input$checkGroup)) %>% 
+            arrange(desc(democrat, republican))%>%
+            ggplot() +
+            geom_line(aes(x=year, y= percent_rank(democrat), color=state_name)) +
+    
+            scale_x_continuous(breaks = seq(1972,2016,4)) +
+            theme(legend.position = "right")+
+            labs(x = "",
+                 y = "",
+                 title= "percentage of democratic votes since 1972")
+        
+    })
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)
+```
+
+
+
